@@ -35,6 +35,7 @@ const EnvSchema = z
     WEB_APP_URL: z.url().default("http://localhost:5173"),
     CORS_ORIGINS: csv,
     COOKIE_SECURE: bool.optional(),
+    COOKIE_SAME_SITE: z.enum(["strict", "lax", "none"]).optional(),
     TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
     MAIL_TRANSPORT: z.enum(["log", "smtp", "file"]).default("log"),
     /** MAIL_TRANSPORT=file (development/E2E only): each message is written as JSON to this directory. */
@@ -168,6 +169,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     isProduction: e.NODE_ENV === "production",
     aiProvider: e.AI_PROVIDER ?? (e.ANTHROPIC_API_KEY ? "anthropic" : "disabled"),
     cookieSecure: e.COOKIE_SECURE ?? e.NODE_ENV === "production",
+    cookieSameSite: (e.COOKIE_SAME_SITE ?? (e.NODE_ENV === "production" ? "none" : "lax")) as
+      | "strict"
+      | "lax"
+      | "none",
     corsOrigins: e.CORS_ORIGINS.length ? e.CORS_ORIGINS : [e.WEB_APP_URL],
   };
 }

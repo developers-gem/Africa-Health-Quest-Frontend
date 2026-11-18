@@ -76,7 +76,7 @@ export function authRouter(deps: {
   const cookieOpts = {
     httpOnly: true,
     secure: config.cookieSecure,
-    sameSite: "strict" as const,
+    sameSite: config.cookieSameSite,
     path: COOKIE_PATH,
   };
   /** Web gets the refresh token as an httpOnly cookie; mobile gets it in the body for secure storage. */
