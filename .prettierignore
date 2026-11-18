@@ -1,0 +1,10 @@
+dist
+coverage
+node_modules
+package-lock.json
+legacy
+docs/api/openapi.json
+apps/mobile
+**/.dart_tool
+playwright-report
+test-results

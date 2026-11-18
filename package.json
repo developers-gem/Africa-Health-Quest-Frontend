@@ -1,0 +1,51 @@
+{
+  "name": "africa-health-quest",
+  "private": true,
+  "description": "Africa Health Quest — Save Lives. Build Healthier Nations.",
+  "workspaces": [
+    "packages/shared-types",
+    "packages/api-contracts",
+    "packages/game-content",
+    "apps/backend",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "prepare": "npm run build:packages",
+    "build:packages": "npm run build -w @ahq/shared-types && npm run build -w @ahq/api-contracts && npm run build -w @ahq/game-content",
+    "build": "npm run build:packages && npm run build -w @ahq/backend && npm run build -w @ahq/web",
+    "dev": "concurrently -k -n backend,web -c green,cyan \"npm:dev:backend\" \"npm:dev:web\"",
+    "dev:backend": "npm run dev -w @ahq/backend",
+    "dev:web": "npm run dev -w @ahq/web",
+    "start:backend": "npm run start -w @ahq/backend",
+    "preview:web": "npm run preview -w @ahq/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run test:unit --workspaces --if-present",
+    "test:integration": "npm run test:integration --workspaces --if-present",
+    "test:e2e": "npm run test:e2e -w @ahq/web",
+    "openapi": "npm run openapi -w @ahq/api-contracts",
+    "db:up": "docker compose up -d --wait mongo",
+    "db:down": "docker compose down",
+    "admin:grant": "npm run admin:grant -w @ahq/backend --"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^4.0.0",
+    "concurrently": "^9.2.1"
+  },
+  "type": "module",
+  "packageManager": "npm@11.21.1"
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# Playwright
+playwright-report/
+test-results/
+# Flutter/Dart tooling (apps/mobile has its own .gitignore too)
+.dart_tool/
+# Local runtime data (media uploads)
+var/

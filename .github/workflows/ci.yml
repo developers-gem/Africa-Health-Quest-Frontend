@@ -1,0 +1,157 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NPM_VERSION: 11.21.1
+  FLUTTER_VERSION: 3.47.9
+
+jobs:
+  quality:
+    name: Format, lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci --ignore-scripts
+      - run: npm run build:packages
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - name: OpenAPI document is up to date
+        run: |
+          npm run openapi
+          git diff --exit-code docs/api/openapi.json
+      - name: Game content matches the prototype import
+        run: |
+          npm run import:prototype -w @ahq/game-content
+          git diff --exit-code packages/game-content/src
+      - run: npm run build
+
+  integration:
+    name: Backend integration + web E2E (MongoDB replica set)
+    runs-on: ubuntu-latest
+    env:
+      MONGO_TEST_URL: mongodb://127.0.0.1:27017/?directConnection=true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: ./scripts/ci/start-mongo-replset.sh
+      - name: S3-compatible test server (moto) for the S3 media driver test
+        run: |
+          python3 -m pip install --quiet "moto[server]"
+          nohup moto_server -p 5055 > moto.log 2>&1 &
+      - run: npm ci --ignore-scripts
+      - run: npm run build:packages
+      - run: npm run test:integration
+        env:
+          S3_TEST_ENDPOINT: http://127.0.0.1:5055
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Web E2E (starts backend + web dev servers)
+        run: npm run test:e2e
+        env:
+          CI: "true"
+          # Each run uses its own database (see apps/web/e2e/support.ts).
+          JWT_ACCESS_SECRET: ci-only-secret-ci-only-secret-ci-only-1234
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: apps/web/playwright-report, retention-days: 7 }
+
+  mobile:
+    name: Flutter analyze, test, Android debug + release builds
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: apps/mobile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "${{ env.FLUTTER_VERSION }}", channel: stable, cache: true }
+      - run: flutter pub get
+      - name: Generated code is up to date
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code lib
+      - name: Format (generated *.g.dart files excluded — build_runner owns them)
+        run: dart format --set-exit-if-changed $(find lib test integration_test -name '*.dart' ! -name '*.g.dart')
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --debug
+      # Release build with R8 and obfuscation, debug-signed here (no upload key in CI). A placeholder https URL
+      # satisfies the release guard; the APK is not distributed.
+      - name: Android release build (R8, obfuscated)
+        run: |
+          flutter build apk --release --obfuscate --split-debug-info=build/symbols \
+            --dart-define=API_BASE_URL=https://api.example.invalid
+          ls -la build/app/outputs/flutter-apk/app-release.apk
+
+  mobile-integration:
+    name: Flutter app against the real backend (Linux desktop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - name: Linux desktop + keyring dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libsecret-1-dev libjsoncpp-dev xvfb gnome-keyring dbus-x11
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "${{ env.FLUTTER_VERSION }}", channel: stable, cache: true }
+      - run: ./scripts/ci/start-mongo-replset.sh
+      - name: Install backend dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm run build:packages
+      - run: flutter pub get
+        working-directory: apps/mobile
+      - name: Fixtures, backend and the Flutter end-to-end test
+        run: xvfb-run -a dbus-run-session -- ./scripts/mobile/run-e2e.sh
+      - if: failure()
+        run: tail -100 apps/mobile/build/e2e-backend-*.log
+
+  ios-build:
+    name: iOS build (no codesign)
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    defaults:
+      run: { working-directory: apps/mobile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "${{ env.FLUTTER_VERSION }}", channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter build ios --debug --no-codesign
+      - name: iOS release build (obfuscated, unsigned)
+        run: |
+          flutter build ios --release --no-codesign --obfuscate --split-debug-info=build/symbols \
+            --dart-define=API_BASE_URL=https://api.example.invalid
+
+  docker:
+    name: Backend container image
+    runs-on: ubuntu-latest
+    needs: [quality]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f apps/backend/Dockerfile -t ahq-backend:ci .

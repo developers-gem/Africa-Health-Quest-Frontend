@@ -1,0 +1,149 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+/* Design tokens: the prototype's identity (warm cream, deep orange, green, gold, dark outline).
+   Primary and secondary are slightly darker than the prototype to meet WCAG AA for white text. */
+:root {
+  --radius: 1rem;
+  --background: oklch(0.97 0.02 80);
+  --foreground: oklch(0.22 0.04 40);
+  --card: oklch(0.995 0.01 85);
+  --card-foreground: oklch(0.22 0.04 40);
+  --popover: oklch(0.995 0.01 85);
+  --popover-foreground: oklch(0.22 0.04 40);
+  --primary: oklch(0.54 0.16 40);
+  --primary-foreground: oklch(0.98 0.01 85);
+  --secondary: oklch(0.42 0.09 155);
+  --secondary-foreground: oklch(0.98 0.01 85);
+  --muted: oklch(0.92 0.03 75);
+  --muted-foreground: oklch(0.45 0.04 50);
+  --accent: oklch(0.8 0.15 80);
+  --accent-foreground: oklch(0.22 0.04 40);
+  --success: oklch(0.5 0.14 150);
+  --success-foreground: oklch(0.98 0.01 85);
+  --warning: oklch(0.8 0.15 80);
+  --destructive: oklch(0.52 0.2 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.86 0.04 70);
+  --input: oklch(0.86 0.04 70);
+  --ring: oklch(0.54 0.16 40);
+  /* Chart mark colour, validated (lightness band, chroma floor, >=3:1 vs card surface). */
+  --chart-1: #2f8a57;
+  --chart-grid: oklch(0.9 0.02 75);
+  --kente: repeating-linear-gradient(
+    90deg,
+    var(--accent) 0 14px,
+    var(--secondary) 14px 22px,
+    var(--primary) 22px 36px,
+    var(--foreground) 36px 40px
+  );
+  --shadow-pop: 0 4px 0 0 var(--foreground);
+  --shadow-pop-sm: 0 2px 0 0 var(--foreground);
+}
+
+@theme inline {
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-grid: var(--chart-grid);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility kente-strip {
+  background: var(--kente);
+  height: 8px;
+}
+@utility kente-strip-thin {
+  background: var(--kente);
+  height: 4px;
+}
+@utility shadow-pop {
+  box-shadow: var(--shadow-pop);
+}
+@utility shadow-pop-sm {
+  box-shadow: var(--shadow-pop-sm);
+}
+/* Pressable cards/buttons: sink onto their shadow. */
+@utility pressable {
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+  &:active {
+    transform: translateY(3px);
+    box-shadow: none;
+  }
+}
+/* Subtle woven-diamond pattern used behind hero sections. */
+@utility adinkra-pattern {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in oklch, var(--foreground) 12%, transparent) 1px,
+      transparent 0
+    ),
+    linear-gradient(45deg, color-mix(in oklch, var(--accent) 18%, transparent) 25%, transparent 25%);
+  background-size:
+    18px 18px,
+    36px 36px;
+}
