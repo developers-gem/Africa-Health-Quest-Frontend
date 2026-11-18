@@ -25,7 +25,8 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.1.0",
     "zod": "^4.1.0",
-    "@ahq/shared-types": "*"
+    "@ahq/shared-types": "*",
+    "typescript": "~5.9.3"
   },
   "sideEffects": [
     "./dist/zod.js",

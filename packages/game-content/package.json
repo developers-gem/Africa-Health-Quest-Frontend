@@ -24,7 +24,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ahq/shared-types": "*"
+    "@ahq/shared-types": "*",
+    "typescript": "~5.9.3"
   },
   "devDependencies": {
     "tsx": "^4.20.0"
